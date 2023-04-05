@@ -25,7 +25,7 @@ function App() {
           <Route path='/' element={<Login/>} />
           <Route path='/register' element={<Register/>} />
           <Route path='/confirmUser' element={<Confirm/>} />
-          <Route path ='/postRide' element = { <MyComponent/>}/>
+          <Route path ='/postRide' element = { <PostRide/>}/>
         </Routes>
       </Router>
     </div>

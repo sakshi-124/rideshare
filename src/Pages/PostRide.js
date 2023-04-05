@@ -9,28 +9,37 @@ import axiosApi from '../Common/AxiosApi';
 import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
+import { Autocomplete } from '@mui/material';
 import { useForm } from 'react-hook-form';
 
 function PostRide() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [rideDetail , setRideDetails] = useState({});
+  const [rideDetail, setRideDetails] = useState({});
 
-  useEffect(() => {
-    if (searchQuery) {
-      axios
-        .get(`https://nominatim.openstreetmap.org/search?q=${searchQuery}&format=json`)
-        .then((response) => {
-          setSearchResults(response.data);
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery]);
+  const config = {
+    headers: {
+// replace with your domain name
+'Access-Control-Allow-Origin': '*','Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'}
+    
+  };
+
+  // useEffect(() => {
+  //   if (searchQuery) {
+  //     axios
+  //       .get(`https://nominatim.openstreetmap.org/search?q=${searchQuery}&format=json`)
+  //       .then((response) => {
+  //         setSearchResults(response.data);
+  //       })
+  //       .catch((error) => {
+  //         console.error(error);
+  //       });
+  //   } else {
+  //     setSearchResults([]);
+  //   }
+  // }, [searchQuery]);
 
   const handleResultClick = (location) => {
     setSelectedLocation(location);
@@ -41,6 +50,19 @@ function PostRide() {
     const value = e.target.value;
     setRideDetails(values => ({ ...values, [name]: value }));
   }
+
+  const handleAutoCompleteInput = async (e) => {
+    const query = { "search": e.target.value }
+    axiosApi.post("/getPlaces", query)
+      .then(res => {
+        if (res.data['statusCode'] === 200) {
+          console.log(res)
+        } else {
+          console.log(res.data)
+        }
+      });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // const registerUserUrl = "/register"
@@ -82,15 +104,17 @@ function PostRide() {
           Post Ride
         </Typography>
         <Box component="form" sx={{ mt: 1 }}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="origin"
-            label="Starting Point"
-            name="origin"
-            value={rideDetail.source}
-            onChange={handleInput}
+          <Autocomplete
+            options={searchResults}
+            getOptionLabel={(option) => searchResults.label}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Select Starting Point"
+                variant="outlined"
+                onChange={handleAutoCompleteInput}
+              />
+            )}
           />
           <TextField
             margin="normal"
@@ -113,7 +137,7 @@ function PostRide() {
             onChange={handleInput}
             autoComplete="phone"
           />
-          
+
           <Button
             type="submit"
             fullWidth
@@ -124,7 +148,7 @@ function PostRide() {
           </Button>
         </Box>
       </Box>
-      
+
     </Container>
   );
 }
