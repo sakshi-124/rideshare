@@ -66,7 +66,7 @@ function Confirm() {
       }}
     >
       <Typography component="h1" variant="h5">
-        Sign in
+        Confirm Sign Up
       </Typography>
       <Box component="form"  onSubmit={handleSubmit} sx={{ mt: 1 }}>
         <TextField
@@ -88,13 +88,13 @@ function Confirm() {
         >
         Verify
         </Button>
-        <Grid container>
+        {/* <Grid container>
           <Grid item>
             <Link href="#" variant="body2">
               {"Resend Verification Code"}
             </Link>
           </Grid>
-        </Grid>
+        </Grid> */}
       </Box>
     </Box>
   </Container>

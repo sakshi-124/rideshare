@@ -1,0 +1,14 @@
+/* Neha Dadarwala - neha.dadarwala@dal.ca */
+
+.color-nav {
+    background-color: #1565c0; 
+    /* #01579b; */
+
+}
+
+.nav-link, .navbar-brand{ 
+    font-family: 'Source Sans Pro', sans-serif;
+    color: #ffffff    !important;
+  }
+
+  
