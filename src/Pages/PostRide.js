@@ -53,7 +53,7 @@ function PostRide() {
 
   const handleAutoCompleteInput = async (e) => {
     const query = { "search": e.target.value }
-    axiosApi.post("/getPlaces", query)
+    axios.post("https://7przixh9me.execute-api.us-east-1.amazonaws.com/testRideShare/getPlaces", query)
       .then(res => {
         if (res.data['statusCode'] === 200) {
           console.log(res)
@@ -97,47 +97,55 @@ function PostRide() {
           marginTop: 8,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          alignItems: 'center'
         }}
       >
         <Typography component="h1" variant="h5">
           Post Ride
         </Typography>
-        <Box component="form" sx={{ mt: 1 }}>
+        <Box component="form" sx={{ mt: 1, width : "100%" }}>
+          <Autocomplete
+            options={searchResults}
+            getOptionLabel={(searchResults) => searchResults.label}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Origin"
+                variant="outlined"
+                fullWidth
+                margin="normal"
+                onChange={handleAutoCompleteInput}
+              />
+            )}
+          />
           <Autocomplete
             options={searchResults}
             getOptionLabel={(option) => searchResults.label}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Select Starting Point"
+                label="Destination"
                 variant="outlined"
+                fullWidth
+                margin="normal"
                 onChange={handleAutoCompleteInput}
               />
             )}
           />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="destination"
-            label="Destination"
-            name="destination"
-            value={rideDetail.destination}
-            onChange={handleInput}
+           <Autocomplete
+            options={searchResults}
+            getOptionLabel={(option) => searchResults.label}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Stop"
+                variant="outlined"
+                fullWidth
+                margin="normal"
+                onChange={handleAutoCompleteInput}
+              />
+            )}
           />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="stops"
-            label="Stops"
-            id="stops"
-            value={rideDetail.stops}
-            onChange={handleInput}
-            autoComplete="phone"
-          />
-
           <Button
             type="submit"
             fullWidth
