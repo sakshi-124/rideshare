@@ -1,11 +1,21 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import React from 'react';
+import '../App.css';
+import { TextField, Box, Button } from '@mui/material';
+import { useNavigate } from "react-router-dom";
+import axiosApi from '../Common/AxiosApi';
+import CssBaseline from '@mui/material/CssBaseline';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import { useForm } from 'react-hook-form';
 
 function PostRide() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [rideDetail , setRideDetails] = useState({});
 
   useEffect(() => {
     if (searchQuery) {
@@ -26,17 +36,96 @@ function PostRide() {
     setSelectedLocation(location);
   };
 
+  const handleInput = (e) => {
+    const name = e.target.name;
+    const value = e.target.value;
+    setRideDetails(values => ({ ...values, [name]: value }));
+  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // const registerUserUrl = "/register"
+    // const path = "/postRide"
+    // console.log(signIn)
+
+    // axiosApi.post(registerUserUrl, signIn)
+    //   .then(res => {
+    //     if (res.data['statusCode'] === 200) {
+    //       console.log(res.data)
+    //       navigate(path)
+    //     } else {
+    //       console.log(res.data)
+    //     }
+    //   })
+  }
   return (
-    <div>
-      <input type="text" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
-      <ul>
-        {searchResults.map((result) => (
-          <li key={result.osm_id} onClick={() => handleResultClick(result)}>
-            {result.display_name}
-          </li>
-        ))}
-      </ul>
-    </div>
+    // <div>
+    //   <input type="text" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+    //   <ul>
+    //     {searchResults.map((result) => (
+    //       <li key={result.osm_id} onClick={() => handleResultClick(result)}>
+    //         {result.display_name}
+    //       </li>
+    //     ))}
+    //   </ul>
+    // </div>
+    <Container component="main" maxWidth="xs">
+      <CssBaseline />
+      <Box
+        sx={{
+          marginTop: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Typography component="h1" variant="h5">
+          Post Ride
+        </Typography>
+        <Box component="form" sx={{ mt: 1 }}>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="origin"
+            label="Starting Point"
+            name="origin"
+            value={rideDetail.source}
+            onChange={handleInput}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="destination"
+            label="Destination"
+            name="destination"
+            value={rideDetail.destination}
+            onChange={handleInput}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="stops"
+            label="Stops"
+            id="stops"
+            value={rideDetail.stops}
+            onChange={handleInput}
+            autoComplete="phone"
+          />
+          
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+          >
+            Post
+          </Button>
+        </Box>
+      </Box>
+      
+    </Container>
   );
 }
 

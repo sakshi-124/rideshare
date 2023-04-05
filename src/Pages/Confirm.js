@@ -17,7 +17,7 @@ function Confirm() {
   const confirmUser = {
     "path" : "confirmUser",
     "email": location.state !== null ? location.state.email : "",
-    "verification_code" : verificationCode.verification_code
+    "verificationCode" : verificationCode.verification_code
   }
   const config = {
     headers: {
@@ -36,21 +36,22 @@ function Confirm() {
   let navigate = useNavigate()
   const handleSubmit = (e) => {
     e.preventDefault();
-    const registerUserUrl = "/confirmUser"
+    const registerUserUrl = "/register"
     const path = "/"
 
     console.log(confirmUser)
-    // axios.post("https://7przixh9me.execute-api.us-east-1.amazonaws.com/testRideShare/confirmrideshareusers")
-    //         .then(res => {
-    //           if(res.data['statusCode'] === 200)
-    //           {
-    //             navigate(path)
-    //           }else
-    //           {
-    //             console.log(res.data)
-    //           }
-    //         });
 
+    axiosApi.post(registerUserUrl,confirmUser)
+            .then(res => {
+              if(res.data['statusCode'] === 200)
+              {
+                console.log(res)
+                navigate(path)
+              }else
+              {
+                console.log(res.data)
+              }
+            });
   }
 
   return (
@@ -67,9 +68,10 @@ function Confirm() {
       <Typography component="h1" variant="h5">
         Sign in
       </Typography>
-      <Box component="form"  onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+      <Box component="form"  onSubmit={handleSubmit} sx={{ mt: 1 }}>
         <TextField
           margin="normal"
+          type="number"
           required
           fullWidth
           id="verification_code"

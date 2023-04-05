@@ -1,12 +1,13 @@
 import React from 'react';
 import '../App.css';
 import { TextField, Box, Button } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect} from 'react';
 import { useNavigate } from "react-router-dom";
 import axiosApi from '../Common/AxiosApi';
 import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
+import { useForm } from 'react-hook-form';
 import axios from 'axios';
 
 function Register() {
@@ -32,8 +33,10 @@ function Register() {
     setUserDetails(values => ({ ...values, [name]: value }));
   }
 
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
   const userAttributes = [
-    { Name: 'phone_number', Value: userDetails.phone_number },
+    { Name: 'phone_number', Value: "+1" + userDetails.phone_number },
     { Name: 'given_name', Value: userDetails.first_name },
     { Name: 'family_name', Value: userDetails.last_name },
     { Name: 'address', Value: userDetails.address },
@@ -50,8 +53,8 @@ function Register() {
   }
 
   //----
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const submitUser = (e) => {
+    //e.preventDefault();
     const registerUserUrl = "/register"
     const path = "/confirmUser"
     console.log(registerUser)
@@ -60,6 +63,7 @@ function Register() {
             .then(res => {
               if(res.data['statusCode'] === 200)
               {
+                console.log(res)
                 navigate(path, { replace: true, state: userDetails })
               }else
               {
@@ -138,7 +142,7 @@ function Register() {
         <Typography component="h1" variant="h5">
           Sign Up
         </Typography>
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+        <Box component="form" onSubmit={handleSubmit(submitUser) }sx={{ mt: 1 }}>
           <TextField
             margin="normal"
             required
@@ -150,6 +154,23 @@ function Register() {
             onChange={handleInput}
             autoComplete="first_name"
             autoFocus
+          //   {...register("first_name", {
+          //     onChange: (e) => { handleInput(e) },
+          //     //required: "First Name is required",
+          //     pattern: {
+          //         message: "First Name is required"
+          //     },
+          //     validate: () => {
+          //         if (userDetails.first_name !== "") {
+          //             return true;
+          //         } else {
+          //             return "First Name is required";
+          //         }
+          //     }
+              
+          // })}
+          // error={Boolean(errors.first_name)}
+          //               helperText={errors.first_name?.message}
           />
           <TextField
             margin="normal"
@@ -177,13 +198,31 @@ function Register() {
             margin="normal"
             required
             fullWidth
-            //type="number"
+            type="number"
             name="phone_number"
             label="Phone Number"
             id="phone_number"
             value={userDetails.phone_number}
             onChange={handleInput}
             autoComplete="phone"
+              {...register("phone_number", {
+              onChange: (e) => { handleInput(e) },
+              //required: "First Name is required",
+              pattern: {
+                value: /^\d{10}$/,
+                message: "Phone Number must be 10 digits"
+              },
+              validate: () => {
+                  if (userDetails.phone_number !== "") {
+                      return true;
+                  } 
+                  else {
+                      return "Phone Number is Required";
+                  }
+              }
+          })}
+          error={Boolean(errors.phone_number)}
+                        helperText={errors.phone_number?.message}
           />
           <TextField
             margin="normal"
@@ -263,6 +302,7 @@ function Register() {
           </Button>
         </Box>
       </Box>
+      
     </Container>
   )
 }

@@ -3,17 +3,20 @@ import json
 import os
 
 client = boto3.client('cognito-idp')
-client_id = os.getenv('')
-user_pool_id = os.getenv('')
+client_id = os.getenv('COGNITO_CLIENT_ID')
+user_pool_id = os.getenv('COGNITO_USER_POOL_ID')
 
 def lambda_handler(event, context):
-    operationType = event['operation']
-    if operationType == 'signup':
-        return handle_signup(event)
-    elif operationType == 'confirm':
-        return handle_confirmation(event)
+    operationType = event['path']
+    if operationType == 'registerUser':
+        response =  handle_signup(event,context)
+        return response
+    elif operationType == 'confirmUser':
+        response = handle_confirmation(event,context)
+        return response
     elif operationType == 'signin':
-        return handle_signin(event)
+        response =  handle_signin(event,context)
+        return response
     else:
         return {
             'statusCode': 400,
@@ -21,7 +24,7 @@ def lambda_handler(event, context):
         }
 
 
-def handle_signup(event):
+def handle_signup(event,context):
     user_attributes = event['userAttributes']
     user_name = event['email']
     password = event['password']
@@ -38,24 +41,14 @@ def handle_signup(event):
         return {
             'statusCode': 500,
             'body': json.dumps('Error registering user: ' + str(e)),
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-                'Access-Control-Allow-Methods': '*'
-            }
         }
     return {
         'statusCode': 200,
-        'body': json.dumps('Registerd'),
-        'headers': {
-            {'Access-Control-Allow-Origin': '*',
-             'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-             'Access-Control-Allow-Methods': '*'}
-        }
+        'body': json.dumps('Registerd')
     }
 
 
-def handle_confirmation(event):
+def handle_confirmation(event,context):
     verification_code = event['verificationCode']
     user_name = event['email']
 
@@ -65,12 +58,11 @@ def handle_confirmation(event):
             Username=user_name,
             ConfirmationCode=verification_code,
         )
-        users = client.list_users(
-            UserPoolId=user_pool_id)
+        #users = client.list_users(
+          #  UserPoolId=user_pool_id)
         return {
             'statusCode': 200,
-            'body': json.dumps({'message': 'User confirmed successfully'}),
-            'users' : users['Users']
+            'body': json.dumps({'message': 'User confirmed successfully'})
         }
     except Exception as e:
         return {
@@ -79,9 +71,10 @@ def handle_confirmation(event):
         }
 
 
-def handle_signin(event):
-    username = event['email']
-    password = event['password']
+def handle_signin(event,context):
+    user = event['user']
+    username = user['email']
+    password = user['password']
 
     try:
         response = client.initiate_auth(
@@ -90,14 +83,27 @@ def handle_signin(event):
                 'USERNAME': username,
                 'PASSWORD': password
             },
-            ClientId='YOUR_APP_CLIENT_ID'
+            ClientId=client_id
+        )
+        
+        userDetails = client.get_user(
+        AccessToken=response['AuthenticationResult']['AccessToken']
         )
 
+        user_details = {}
+
+        for attribute in userDetails['UserAttributes']:
+            user_details[attribute['Name']] = attribute['Value']
+
+        response_body = {
+            "userDetails": user_details
+        }
         return {
             'statusCode': 200,
-            'body': json.dumps({
-                'accessToken': response['AuthenticationResult']['AccessToken']
-            })
+            # 'body': json.dumps({
+            #     'accessToken': response['AuthenticationResult']['AccessToken'],
+            # }),
+            'users' : json.dumps(response_body)
         }
     except client.exceptions.UserNotFoundException:
         return {
