@@ -26,6 +26,8 @@ def lambda_handler(event, context):
         city_values = [hit['fields']['city'] for hit in search_response['hits']['hit']]
         
         city_province = [{"label" : f"{city}, {prov}" }for prov, city in zip(province_values, city_values)]
+        for item in city_province:
+            item["label"] = item["label"].replace("[", "").replace("]", "").replace("'","")
         
     except Exception as  e: 
          return {

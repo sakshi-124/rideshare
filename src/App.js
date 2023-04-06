@@ -12,6 +12,8 @@ import ApiContext from './Common/ApiContext';
 import { useState , useLocation} from 'react';
 import MyComponent from './Pages/accessContext';
 import RideShareNav from './Components/Navbar';
+import AvailableRides from './Pages/AvailableRides';
+import ConfirmRides from './Pages/ConfirmRides';
 
 function App() {
 
@@ -26,6 +28,8 @@ function App() {
           <Route path='/register' element={<Register/>} />
           <Route path='/confirmUser' element={<Confirm/>} />
           <Route path ='/postRide' element = { <PostRide/>}/>
+          <Route path ='/availableRides' element = { <AvailableRides/>}/>
+          <Route path ='/rideRequests' element = { <ConfirmRides/>}/>
         </Routes>
       </Router>
     </div>
