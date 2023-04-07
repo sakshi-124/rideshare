@@ -16,16 +16,16 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import ApiContext from '../Common/ApiContext';
-import { useContext } from 'react';
+import Swal from 'sweetalert2';
 //import { DateTimePicker } from '@mui/lab';
 
 function PostRide() {
   const [searchResults, setSearchResults] = useState([]);
   const [rideDetail, setRideDetails] = useState({});
   const [dates , setDate] = useState(Dayjs)
-  const { userData } = useContext(ApiContext);
-  const userSub = userData.sub;
+  const userDetails = JSON.parse(localStorage.getItem("LoggedInUserDet"))
+  const userSub = userDetails['sub'];
+  const navigate = useNavigate();
 
   const handleInput = (e) => {
     const name = e.target.name;
@@ -109,6 +109,15 @@ function PostRide() {
     axiosApi.post("/ridemanagement" , postRide).then(res => {
       if (res.data['statusCode'] === 200) {
         console.log(res)
+        Swal.fire({
+          title: "Ride Posted",
+          icon: 'success',
+          text: "Redirecting in a second...",
+          timer: 2000,
+          showConfirmButton: false
+      }).then(function () {
+        window.location.reload()
+      })
       } else {
         console.log(res.data)
       }

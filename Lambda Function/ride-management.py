@@ -12,6 +12,7 @@ user_pool_id = os.getenv('COGNITO_USER_POOL')
 queue_name = os.getenv('QUEUE_NAME')
 rides_table = os.getenv('RIDE_TABLE')
 ride_request_table = os.getenv('RIDE_REQUEST_TABLE')
+sns_topic_arn = os.getenv('SNS_TOPIC_ARN')
 
 def lambda_handler(event, context):
     operationType = event['path']
@@ -41,6 +42,20 @@ def getMaxId(table_name, field_name):
     maxId = int(response) + 1
     return str(maxId)
 
+def getDetailsById(table_name , partition_key_field ,partition_key_id):
+     table = dynamodb.Table(table_name)
+     response = table.scan(
+        FilterExpression=Attr(str(partition_key_field)).eq(partition_key_id))
+     return response['Items']
+
+def getUserDetails(userSub):
+
+    response = cognito_client.admin_get_user(
+        UserPoolId=user_pool_id,
+        Username=userSub,
+    )
+    return response
+    
 def handle_postRides(event,context):
     try:
         ride_details = event['rideDetails']
@@ -81,15 +96,6 @@ def handle_postRides(event,context):
 #             'statusCode': 500,
 #             'body': json.dumps({'message': 'An error occurred: {}'.format(str(e))})
 #         }
-
-
-def getUserDetails(userSub):
-
-    response = cognito_client.admin_get_user(
-        UserPoolId=user_pool_id,
-        Username=userSub,
-    )
-    return response
 
 def handle_rideDetails(event,context):
     try:
@@ -133,14 +139,14 @@ def handle_rideRequests(event, context):
         queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
         message = event['requestDetail']
         
-        print(message)
+        #print(message)
         
         response = sqs.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message)
         )
         
-        print(response)
+        #print(response)
         
         messages = sqs.receive_message(
         QueueUrl=queue_url,
@@ -149,7 +155,7 @@ def handle_rideRequests(event, context):
         WaitTimeSeconds=0
         )
 
-        print("polled messages" , messages)
+        #print("polled messages" , messages)
         
         if 'Messages'not in messages:
             return {
@@ -172,8 +178,39 @@ def handle_rideRequests(event, context):
             print(newData)
             
             response = table.put_item(Item=newData)
+            print(newData['ride_id'])
+            ride_details = getDetailsById(rides_table,'ride_id',int(newData['ride_id']))
             
+            print("ride det" , (ride_details))
+            user_details = {}
+            
+            for ride in ride_details:
+                user = getUserDetails(ride['posted_by'])
+                for attribute in user['UserAttributes']:
+                    user_details[attribute['Name']] = attribute['Value']
+                print(user_details)
+            
+            publisher_email = user_details['email']
+            print(publisher_email)
+            
+             # Check if the email is already subscribed to the topic
 
+            message = "You have got a ride request from" + " " + user_details['origin'] + " to " + user_details['destination'] + " by " + user_details['given_name'] + " " +  user_details['family_name']
+            
+            response = sns.publish(
+            TopicArn=sns_topic_arn,
+            Message=message,
+            Subject='You got a Ride Request',
+            MessageStructure='string',
+            MessageAttributes={
+                'email': {
+                    'DataType': 'String',
+                    'StringValue': publisher_email
+                }
+            }
+            )      
+            
+        
     except Exception as e:
         return {
             'statusCode': 500,

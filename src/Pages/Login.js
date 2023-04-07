@@ -40,6 +40,8 @@ function SignIn() {
         if (res.data['statusCode'] === 200) {
           console.log(res.data.userDetails)
           setUserData(res.data.userDetails);
+          localStorage.setItem("LoggedInUserDet" , JSON.stringify(res.data.userDetails))
+          console.log(JSON.parse(localStorage.getItem("LoggedInUserDet")));
           navigate(path)
         } else {
           console.log(res.data)
