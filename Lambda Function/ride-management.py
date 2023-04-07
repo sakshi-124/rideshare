@@ -4,8 +4,14 @@ import os
 from boto3.dynamodb.conditions import Attr,And,Not
 
 dynamodb = boto3.resource('dynamodb')
+sqs = boto3.client('sqs')
+sns = boto3.client('sns')
+
 cognito_client = boto3.client('cognito-idp')
 user_pool_id = os.getenv('COGNITO_USER_POOL')
+queue_name = os.getenv('QUEUE_NAME')
+rides_table = os.getenv('RIDE_TABLE')
+ride_request_table = os.getenv('RIDE_REQUEST_TABLE')
 
 def lambda_handler(event, context):
     operationType = event['path']
@@ -17,6 +23,9 @@ def lambda_handler(event, context):
     #     return response
     elif operationType == 'availableRides':
          response =  handle_rideDetails(event,context)
+         return response
+    elif operationType == 'rideRequest':
+         response =  handle_rideRequests(event,context)
          return response
     else:
         return {
@@ -34,11 +43,10 @@ def getMaxId(table_name, field_name):
 
 def handle_postRides(event,context):
     try:
-        table_name = os.getenv('RIDE_TABLE')
         ride_details = event['rideDetails']
-        newData = {"ride_id": int(getMaxId(table_name, "ride_id"))}
+        newData = {"ride_id": int(getMaxId(rides_table, "ride_id"))}
         newData.update(ride_details)
-        table = dynamodb.Table(table_name)
+        table = dynamodb.Table(rides_table)
         response = table.put_item(Item=newData)
 
     except Exception as e:
@@ -119,3 +127,59 @@ def handle_rideDetails(event,context):
             'statusCode': 200,
              "AvailableRides": (available_rides)
         }
+
+def handle_rideRequests(event, context):
+    try:
+        queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
+        message = event['requestDetail']
+        
+        print(message)
+        
+        response = sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody=json.dumps(message)
+        )
+        
+        print(response)
+        
+        messages = sqs.receive_message(
+        QueueUrl=queue_url,
+        MaxNumberOfMessages=1,
+        VisibilityTimeout=0,
+        WaitTimeSeconds=0
+        )
+
+        print("polled messages" , messages)
+        
+        if 'Messages'not in messages:
+            return {
+                'statusCode': 404,
+                'body': 'No messages found'
+            }
+        else :
+            msg = messages['Messages'][0]
+            message_body = json.loads(msg['Body'])
+
+            sqs.delete_message(
+            QueueUrl=queue_url,
+            ReceiptHandle=msg['ReceiptHandle']
+            )
+            
+            table = dynamodb.Table(ride_request_table) 
+            newData = {"request_id": int(getMaxId(ride_request_table, "request_id"))}
+            
+            newData.update(message_body)
+            print(newData)
+            
+            response = table.put_item(Item=newData)
+            
+
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps('Error in a Ride Request: ' + str(e)),
+        }
+    return {
+        'statusCode': 200,
+        'body': json.dumps(response)
+    }
