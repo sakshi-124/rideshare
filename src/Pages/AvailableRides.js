@@ -7,8 +7,9 @@ import axiosApi from '../Common/AxiosApi';
 
 function AvailableRides() {
     const [rides, setRide] = useState([]);
-    const { userData } = useContext(ApiContext);
     //const userSub = userData.sub;
+    const userDetails = JSON.parse(localStorage.getItem("LoggedInUserDet"))
+    const userSub = userDetails['sub'];
 
     useEffect(() => {
 
@@ -16,7 +17,7 @@ function AvailableRides() {
 
         axiosApi.post(rideUrl, {
             "path": "availableRides",
-            "loggedinUser": "8ed44ead-aede-49ea-ba94-8512d6d2eed5"
+            "loggedinUser": userSub
         })
             .then(res => {
                 console.log(res);

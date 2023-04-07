@@ -19,14 +19,17 @@ def lambda_handler(event, context):
     if operationType == 'postRide':
         response =  handle_postRides(event,context)
         return response
-    # elif operationType == 'confirmRide':
-    #     response = handle_confirmRides(event,context)
-    #     return response
+    elif operationType == 'confirmRide':
+         response = handle_confirmRides(event,context)
+         return response
     elif operationType == 'availableRides':
          response =  handle_rideDetails(event,context)
          return response
     elif operationType == 'rideRequest':
          response =  handle_rideRequests(event,context)
+         return response
+    elif operationType == 'allRideRequests':
+         response = handle_all_ride_requests(event,context)
          return response
     else:
         return {
@@ -63,6 +66,22 @@ def handle_postRides(event,context):
         newData.update(ride_details)
         table = dynamodb.Table(rides_table)
         response = table.put_item(Item=newData)
+        
+        message = "Ride Available From" + " " + newData['origin'] + " to " + newData['destination'] + " via " + newData['stop'] + " on " + newData['ride_date']
+        
+        response = sns.publish(
+            TopicArn=sns_topic_arn,
+            Message=message,
+            Subject='Ride Available',
+            MessageStructure='string',
+            MessageAttributes={
+                'email': {
+                    'DataType': 'String',
+                    'StringValue': ride_details['userEmail']
+                }
+            }
+            )
+        
 
     except Exception as e:
         return {
@@ -75,27 +94,18 @@ def handle_postRides(event,context):
     }
 
 
-# def handle_confirmRides(event,context):
-#     verification_code = event['verificationCode']
-#     user_name = event['email']
+def handle_confirmRides(event,context):
 
-#     try:
-#         response = client.confirm_sign_up(
-#             ClientId=client_id,
-#             Username=user_name,
-#             ConfirmationCode=verification_code,
-#         )
-#         #users = client.list_users(
-#           #  UserPoolId=user_pool_id)
-#         return {
-#             'statusCode': 200,
-#             'body': json.dumps({'message': 'User confirmed successfully'})
-#         }
-#     except Exception as e:
-#         return {
-#             'statusCode': 500,
-#             'body': json.dumps({'message': 'An error occurred: {}'.format(str(e))})
-#         }
+    try:
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'User confirmed successfully'})
+        }
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'message': 'An error occurred: {}'.format(str(e))})
+        }
 
 def handle_rideDetails(event,context):
     try:
@@ -117,11 +127,13 @@ def handle_rideDetails(event,context):
     
         for ride in available_rides:
             user = getUserDetails(ride['posted_by'])
+            userSub = ride['posted_by']
             user_details = {}
             for attribute in user['UserAttributes']:
                 user_details[attribute['Name']] = attribute['Value']
                 
-            ride['posted_by'] = user_details['given_name'] + " " + user_details['family_name']
+            ride['posted_by'] = userSub + "," + user_details['given_name'] + " " + user_details['family_name']
+            
        
     except Exception as e:
         return {
@@ -139,14 +151,12 @@ def handle_rideRequests(event, context):
         queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
         message = event['requestDetail']
         
-        #print(message)
+        print("ride message" , message)
         
         response = sqs.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message)
         )
-        
-        #print(response)
         
         messages = sqs.receive_message(
         QueueUrl=queue_url,
@@ -172,17 +182,20 @@ def handle_rideRequests(event, context):
             )
             
             table = dynamodb.Table(ride_request_table) 
-            newData = {"request_id": int(getMaxId(ride_request_table, "request_id"))}
+            print("message_body" , message_body)
             
-            newData.update(message_body)
-            print(newData)
+            requestData = {"request_id": int(getMaxId(ride_request_table, "request_id"))}
             
-            response = table.put_item(Item=newData)
-            print(newData['ride_id'])
-            ride_details = getDetailsById(rides_table,'ride_id',int(newData['ride_id']))
+            requestData.update(message_body)
+            print("req data " , requestData)
+            
+            response = table.put_item(Item=requestData)
+            print(requestData['ride_id'])
+            
+            ride_details = getDetailsById(rides_table,'ride_id',int(requestData['ride_id']))
             
             print("ride det" , (ride_details))
-            user_details = {}
+            '''user_details = {}
             
             for ride in ride_details:
                 user = getUserDetails(ride['posted_by'])
@@ -191,11 +204,11 @@ def handle_rideRequests(event, context):
                 print(user_details)
             
             publisher_email = user_details['email']
-            print(publisher_email)
+            print(publisher_email)'''
             
-             # Check if the email is already subscribed to the topic
+             #commented -- need to do later 
 
-            message = "You have got a ride request from" + " " + user_details['origin'] + " to " + user_details['destination'] + " by " + user_details['given_name'] + " " +  user_details['family_name']
+        ''' message = "You have got a ride request from" + " " + user_details['origin'] + " to " + user_details['destination'] + " by " + user_details['given_name'] + " " +  user_details['family_name']
             
             response = sns.publish(
             TopicArn=sns_topic_arn,
@@ -208,9 +221,8 @@ def handle_rideRequests(event, context):
                     'StringValue': publisher_email
                 }
             }
-            )      
+            )'''      
             
-        
     except Exception as e:
         return {
             'statusCode': 500,
@@ -220,3 +232,47 @@ def handle_rideRequests(event, context):
         'statusCode': 200,
         'body': json.dumps(response)
     }
+
+def handle_all_ride_requests(event,context):
+    try:
+        currentUser = event['currentUser']
+        table = dynamodb.Table(ride_request_table)
+        allRequests = table.scan( FilterExpression= Attr('request_id').gt(0))
+        allRequests = allRequests['Items']
+        
+        ridesTable = dynamodb.Table(rides_table)
+        allRides = ridesTable.scan( FilterExpression=Attr('ride_id').gt(0))
+        allRides = allRides['Items']
+        
+        ride_dict = {}
+        
+        for ride in allRides:
+            ride_dict[ride['ride_id']] = ride
+        
+        for request in allRequests:
+            ride_id = request['ride_id']
+            ride_details = ride_dict.get(ride_id)
+            if ride_details:
+                request['ride_details'] = ride_details
+                
+        merged_data = allRequests
+    
+
+        for ride in merged_data:
+            user = getUserDetails(ride['requested_by'])
+            user_details = {}
+            for attribute in user['UserAttributes']:
+                user_details[attribute['Name']] = attribute['Value']
+                
+            ride['requested_by'] = user_details['given_name'] + " " + user_details['family_name']
+            ride['form'] = 'allRequests'
+
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps('Error Posting a ride: ' + str(e)),
+        }
+    return {
+        'statusCode': 200,
+        'allRequests' : merged_data
+        }

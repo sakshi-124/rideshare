@@ -25,6 +25,7 @@ function PostRide() {
   const [dates , setDate] = useState(Dayjs)
   const userDetails = JSON.parse(localStorage.getItem("LoggedInUserDet"))
   const userSub = userDetails['sub'];
+  const userEmail = userDetails['email'];
   const navigate = useNavigate();
 
   const handleInput = (e) => {
@@ -127,6 +128,7 @@ function PostRide() {
     setRideDetails({
       ...rideDetail,
       "posted_by" : userSub,
+      "userEmail" : userEmail,
       "status" : 0,
     });
     //console.log(formValues)
@@ -146,7 +148,7 @@ function PostRide() {
         <Typography component="h1" variant="h5">
           Post Ride
         </Typography>
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: "100%" }}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: "55%" }}>
           <LocalizationProvider dateAdapter={AdapterDayjs} >
             <DemoContainer components={['DatePicker']} >
               <DatePicker label="Select Ride Date"
