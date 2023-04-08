@@ -1,21 +1,15 @@
-import React, { useState } from 'react'
+import React from 'react'
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
-import CardMedia from '@mui/material/CardMedia';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import { useNavigate } from "react-router-dom";
 import { Grid } from '@mui/material';
 import { Container } from '@mui/system';
-import { Buffer } from 'buffer';
 import axiosApi from '../Common/AxiosApi';
 import Swal from 'sweetalert2';
 
 const RidesCard = (props) => {
-
-
-    let navigate = useNavigate();
 
     let rideManagementUrl = "/ridemanagement"
     const userDetails = JSON.parse(localStorage.getItem("LoggedInUserDet"))
@@ -103,6 +97,7 @@ const RidesCard = (props) => {
                     justify="center"
                     style={{ marginTop: "1%" }}
                 >
+                     {/* eslint-disable-next-line */}
                     {props.rides.map((rides, index) => {
                         console.log(rides)
                         if (rides['form']) {
