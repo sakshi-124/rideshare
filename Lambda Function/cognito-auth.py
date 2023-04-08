@@ -1,21 +1,26 @@
 import boto3
 import json
 import os
+from botocore.exceptions import ClientError
 
 client = boto3.client('cognito-idp')
+sns = boto3.client('sns')
+
 client_id = os.getenv('COGNITO_CLIENT_ID')
 user_pool_id = os.getenv('COGNITO_USER_POOL_ID')
+sns_topic_arn = os.getenv('SNS_TOPIC_ARN')
+
 
 def lambda_handler(event, context):
     operationType = event['path']
     if operationType == 'registerUser':
-        response =  handle_signup(event,context)
+        response = handle_signup(event, context)
         return response
     elif operationType == 'confirmUser':
-        response = handle_confirmation(event,context)
+        response = handle_confirmation(event, context)
         return response
     elif operationType == 'signin':
-        response =  handle_signin(event,context)
+        response = handle_signin(event, context)
         return response
     else:
         return {
@@ -24,7 +29,7 @@ def lambda_handler(event, context):
         }
 
 
-def handle_signup(event,context):
+def handle_signup(event, context):
     user_attributes = event['userAttributes']
     user_name = event['email']
     password = event['password']
@@ -36,19 +41,36 @@ def handle_signup(event,context):
             Password=password,
             UserAttributes=user_attributes,
         )
+        subscribers = sns.list_subscriptions_by_topic(TopicArn=sns_topic_arn)
+        subscribed_emails = [sub['Endpoint']
+                             for sub in subscribers['Subscriptions']]
 
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps('Error registering user: ' + str(e)),
-        }
+        if user_name not in subscribed_emails:
+
+            response = sns.subscribe(
+                TopicArn=sns_topic_arn,
+                Protocol='email',
+                Endpoint=user_name
+            )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'UsernameExistsException':
+            return {
+                'statusCode': 500,
+                'body': json.dumps('user already exists'),
+            }
+        else:
+            return {
+                'statusCode': 500,
+                'body': json.dumps('Error registering user: ' + str(e)),
+            }
+
     return {
         'statusCode': 200,
         'body': json.dumps('Registerd')
     }
 
 
-def handle_confirmation(event,context):
+def handle_confirmation(event, context):
     verification_code = event['verificationCode']
     user_name = event['email']
 
@@ -58,8 +80,24 @@ def handle_confirmation(event,context):
             Username=user_name,
             ConfirmationCode=verification_code,
         )
-        #users = client.list_users(
-          #  UserPoolId=user_pool_id)
+
+        message = "Thanks for subscribing RideShare to receive ride related informations"
+
+        response = sns.publish(
+            TopicArn=sns_topic_arn,
+            Message=message,
+            Subject='Subscription Confirmation',
+            MessageStructure='string',
+            MessageAttributes={
+                    'email': {
+                        'DataType': 'String',
+                        'StringValue': user_name
+                    }
+            }
+        )
+
+        # users = client.list_users(
+        #  UserPoolId=user_pool_id)
         return {
             'statusCode': 200,
             'body': json.dumps({'message': 'User confirmed successfully'})
@@ -71,7 +109,7 @@ def handle_confirmation(event,context):
         }
 
 
-def handle_signin(event,context):
+def handle_signin(event, context):
     user = event['user']
     username = user['email']
     password = user['password']
@@ -85,9 +123,9 @@ def handle_signin(event,context):
             },
             ClientId=client_id
         )
-        
+
         userDetails = client.get_user(
-        AccessToken=response['AuthenticationResult']['AccessToken']
+            AccessToken=response['AuthenticationResult']['AccessToken']
         )
 
         user_details = {}
@@ -96,11 +134,11 @@ def handle_signin(event,context):
             user_details[attribute['Name']] = attribute['Value']
 
         response_body = {
-           
+
         }
         return {
             'statusCode': 200,
-             "userDetails": user_details
+            "userDetails": user_details
         }
     except client.exceptions.UserNotFoundException:
         return {

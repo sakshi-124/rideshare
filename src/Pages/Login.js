@@ -46,7 +46,7 @@ function SignIn() {
           navigate(path)
         } else {
           Swal.fire({
-            title: "Invalid Credentials",
+            title: res.data.body,
             icon: 'warning',
             text: "Redirecting in a second...",
             timer: 2000,

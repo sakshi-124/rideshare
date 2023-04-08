@@ -8,7 +8,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { useForm } from 'react-hook-form';
-import axios from 'axios';
+import Swal from 'sweetalert2';
 
 function Register() {
 
@@ -67,6 +67,15 @@ function Register() {
                 navigate(path, { replace: true, state: userDetails })
               }else
               {
+                Swal.fire({
+                  title: res.data.body,
+                  icon: 'warning',
+                  text: "Redirecting in a second...",
+                  timer: 2000,
+                  showConfirmButton: false
+              }).then(function () {
+                window.location.reload()
+              })
                 console.log(res.data)
               } 
             })
