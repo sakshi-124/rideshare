@@ -8,6 +8,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import ApiContext from '../Common/ApiContext';
+import Swal from 'sweetalert2';
 
 function SignIn() {
 
@@ -44,6 +45,15 @@ function SignIn() {
           console.log(JSON.parse(localStorage.getItem("LoggedInUserDet")));
           navigate(path)
         } else {
+          Swal.fire({
+            title: "Invalid Credentials",
+            icon: 'warning',
+            text: "Redirecting in a second...",
+            timer: 2000,
+            showConfirmButton: false
+        }).then(function () {
+          window.location.reload()
+        })
           console.log(res.data)
         }
       })
