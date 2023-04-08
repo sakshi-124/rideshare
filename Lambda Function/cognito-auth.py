@@ -10,7 +10,6 @@ client_id = os.getenv('COGNITO_CLIENT_ID')
 user_pool_id = os.getenv('COGNITO_USER_POOL_ID')
 sns_topic_arn = os.getenv('SNS_TOPIC_ARN')
 
-
 def lambda_handler(event, context):
     operationType = event['path']
     if operationType == 'registerUser':

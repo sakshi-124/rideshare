@@ -48,6 +48,15 @@ const RidesCard = (props) => {
                     window.location.reload()
                 })
             } else {
+                Swal.fire({
+                    title: res.data.body,
+                    icon: 'warning',
+                    text: "Redirecting in a second...",
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(function () {
+                    window.location.reload()
+                })
                 console.log(res.data)
             }
         });
