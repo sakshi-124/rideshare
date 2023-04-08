@@ -2,6 +2,7 @@ import boto3
 import json
 import os
 from boto3.dynamodb.conditions import Attr,And,Not
+import datetime
 
 dynamodb = boto3.resource('dynamodb')
 sqs = boto3.client('sqs')
@@ -99,14 +100,46 @@ def handle_confirmRides(event,context):
 
     try:
         ride_det = event['rideDetails']
-        ride_confirmation_table = dynamodb.Table(ride_confirmation_table)
-        confirmation_id = getMaxId()
+        
+        confirmation_id = getMaxId(ride_confirmation_table,'confirmation_id')
+        ride_id = event['ride_id']
+        request_id = event['request_id']
+        
+        confirmation_table = dynamodb.Table(ride_confirmation_table)
+        main_rides_table = dynamodb.Table(rides_table)
+        main_request_table = dynamodb.Table(ride_request_table)
+        
         
         confirmRide = {
-            
+            "confirmation_id" : int(confirmation_id),
+            "ride_id" : ride_id,
+            "confirmation_date" : datetime.date.today().isoformat(),
+            "confirm_user_id" : event['requested_by']
         }
+
+        response = confirmation_table.put_item(Item = confirmRide)
         
+        response = main_request_table.update_item(
+           Key={'request_id': int(request_id)},
+                UpdateExpression='SET isConfirmed = :val',
+                ExpressionAttributeValues={':val': 'Y'}
+            )
+
+        if int(ride_det['available_seat']) > 1:
+            response = main_rides_table.update_item(
+                Key={'ride_id': int(ride_id)},
+                UpdateExpression='SET available_seat = available_seat - :decrement',
+                ExpressionAttributeValues={':decrement': 1},
+                ReturnValues='UPDATED_NEW'
+            )
         
+        if int(ride_det['available_seat']) == 1:
+            response = main_rides_table.update_item(
+                Key={'ride_id': int(ride_id)},
+                UpdateExpression='SET ride_status = :val',
+                ExpressionAttributeValues={':val': 1}
+            )
+
         return {
             'statusCode': 200,
             'body': json.dumps({'message': 'Ride confirmed successfully'})
@@ -127,7 +160,7 @@ def handle_rideDetails(event,context):
     
         response = table.scan(
         FilterExpression=And(
-        Attr('status').eq(0),
+        Attr('ride_status').eq(0),
         Attr('ride_id').gt(0),
         #Not(Attr('posted_by').eq(loggedInUser))
         )
@@ -247,7 +280,11 @@ def handle_all_ride_requests(event,context):
     try:
         currentUser = event['currentUser']
         table = dynamodb.Table(ride_request_table)
-        allRequests = table.scan( FilterExpression= Attr('request_id').gt(0))
+        allRequests = table.scan( FilterExpression= And(
+        Attr('request_id').gt(0),
+        Attr('isConfirmed').eq('N')
+        )
+        )
         allRequests = allRequests['Items']
         
         ridesTable = dynamodb.Table(rides_table)
@@ -272,10 +309,12 @@ def handle_all_ride_requests(event,context):
             user = getUserDetails(ride['requested_by'])
             user_details = {}
             for attribute in user['UserAttributes']:
+                userSub = ride['requested_by']
                 user_details[attribute['Name']] = attribute['Value']
                 
             ride['requested_by'] = user_details['given_name'] + " " + user_details['family_name']
             ride['form'] = 'allRequests'
+            ride['requested_by_sub'] = userSub
 
     except Exception as e:
         return {

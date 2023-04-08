@@ -17,7 +17,7 @@ const RidesCard = (props) => {
 
     let navigate = useNavigate();
 
-    let path = '/modifyStock/true';
+    let rideManagementUrl = "/ridemanagement"
     const userDetails = JSON.parse(localStorage.getItem("LoggedInUserDet"))
     const userSub = userDetails['sub'];
 
@@ -30,11 +30,12 @@ const RidesCard = (props) => {
             "path": "rideRequest",
             "requestDetail": {
                 "ride_id": ride_id,
-                "requested_by": userSub
+                "requested_by": userSub,
+                "isConfirmed" : "N"
             }
         }
         console.log(requestDetail)
-        axiosApi.post("/ridemanagement", requestDetail).then(res => {
+        axiosApi.post(rideManagementUrl, requestDetail).then(res => {
             if (res.data['statusCode'] === 200) {
                 console.log(res)
                 Swal.fire({
@@ -54,35 +55,34 @@ const RidesCard = (props) => {
     }
 
     const handleOnClickConfirmRides = (ride) => {
-        console.log(ride)
-        const ride_id = ride.ride_id
-
-        console.log(ride_id)
-        const requestDetail = {
-            "path": "rideRequest",
-            "requestDetail": {
-                "ride_id": ride_id,
-                "requested_by": userSub
-            }
+        const confirmRideDet = {
+            "path": "confirmRide",
+            "rideDetails": ride.ride_details,
+            "ride_id" : ride.ride_id,
+            "requested_by" : ride.requested_by_sub,
+            "request_id" : ride.request_id
         }
-        console.log(requestDetail)
-        axiosApi.post("/ridemanagement", requestDetail).then(res => {
-            if (res.data['statusCode'] === 200) {
-                console.log(res)
-                Swal.fire({
-                    title: "Ride Requested",
-                    icon: 'success',
-                    text: "Redirecting in a second...",
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(function () {
-                    window.location.reload()
-                })
-            } else {
-                console.log(res.data)
-            }
-        });
+        console.log(confirmRideDet)
 
+        axiosApi.post(rideManagementUrl,confirmRideDet).then(res =>
+            {
+                if (res.data['statusCode'] === 200) {
+                    console.log(res)
+                    Swal.fire({
+                        title: "Ride Confirmed",
+                        icon: 'success',
+                        text: "Redirecting in a second...",
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(function () {
+                        window.location.reload()
+                    })
+                } else {
+                    console.log(res.data)
+                }
+            }).catch(err =>{
+
+            })
     }
 
     return (

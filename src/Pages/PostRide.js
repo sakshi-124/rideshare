@@ -39,7 +39,7 @@ function PostRide() {
     setRideDetails({
       ...rideDetail,
       "ride_date" : ride_date,
-      "available_seat" : value,
+      "available_seat" : parseInt(value),
     });
     console.log({ rideDetail })
   }
@@ -129,7 +129,7 @@ function PostRide() {
       ...rideDetail,
       "posted_by" : userSub,
       "userEmail" : userEmail,
-      "status" : 0,
+      "ride_status" : 0,
     });
     //console.log(formValues)
   }, []);
