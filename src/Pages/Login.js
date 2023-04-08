@@ -45,8 +45,9 @@ function SignIn() {
           console.log(JSON.parse(localStorage.getItem("LoggedInUserDet")));
           navigate(path)
         } else {
+          const message = res.data.body
           Swal.fire({
-            title: res.data.body,
+            title: message,
             icon: 'warning',
             text: "Redirecting in a second...",
             timer: 2000,

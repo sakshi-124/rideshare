@@ -148,7 +148,7 @@ def handle_signin(event, context):
     except client.exceptions.NotAuthorizedException:
         return {
             'statusCode': 401,
-            'body': json.dumps({'message': 'Incorrect username or password'})
+            'body': 'Incorrect username or password'
         }
     except Exception as e:
         return {
