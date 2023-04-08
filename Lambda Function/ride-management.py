@@ -13,6 +13,7 @@ queue_name = os.getenv('QUEUE_NAME')
 rides_table = os.getenv('RIDE_TABLE')
 ride_request_table = os.getenv('RIDE_REQUEST_TABLE')
 sns_topic_arn = os.getenv('SNS_TOPIC_ARN')
+ride_confirmation_table = os.getenv('RIDE_CONFIRMATION_TABLE')
 
 def lambda_handler(event, context):
     operationType = event['path']
@@ -97,9 +98,18 @@ def handle_postRides(event,context):
 def handle_confirmRides(event,context):
 
     try:
+        ride_det = event['rideDetails']
+        ride_confirmation_table = dynamodb.Table(ride_confirmation_table)
+        confirmation_id = getMaxId()
+        
+        confirmRide = {
+            
+        }
+        
+        
         return {
             'statusCode': 200,
-            'body': json.dumps({'message': 'User confirmed successfully'})
+            'body': json.dumps({'message': 'Ride confirmed successfully'})
         }
     except Exception as e:
         return {
