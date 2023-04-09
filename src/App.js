@@ -17,9 +17,10 @@ import ConfirmRides from './Pages/ConfirmRides';
 function App() {
   const location = useLocation(); // get the current location of the page
   const showNavbar = location.pathname !== "/"; // check if the current path is not "/" (i.e. Login page)
+  const showNavbar1 = location.pathname !== '/register';
   return (
     <div>
-      {showNavbar && <RideShareNav />}
+      {showNavbar && showNavbar1 && <RideShareNav />}
       <Routes>
       <Route path='/' element={<Login/>} />
           <Route path='/register' element={<Register/>} />
