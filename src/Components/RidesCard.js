@@ -97,7 +97,6 @@ const RidesCard = (props) => {
                     justify="center"
                     style={{ marginTop: "1%" }}
                 >
-                     {/* eslint-disable-next-line */}
                     {props.rides.map((rides, index) => {
                         console.log(rides)
                         if (rides['form']) {
