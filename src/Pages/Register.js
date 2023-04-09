@@ -151,7 +151,7 @@ function Register() {
         <Typography component="h1" variant="h5">
           Sign Up
         </Typography>
-        <Box component="form" onSubmit={handleSubmit(submitUser) }sx={{ mt: 1 }}>
+        <Box component="form" novalidate onSubmit={handleSubmit(submitUser)}sx={{ mt: 1 }}>
           <TextField
             margin="normal"
             required
@@ -202,6 +202,23 @@ function Register() {
             value={userDetails.email}
             onChange={handleInput}
             autoComplete="email"
+              {...register("email", {
+              onChange: (e) => { handleInput(e) },
+              pattern: {
+                value: /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/,
+                message: "Not a valid Email"
+              },
+              validate: () => {
+                  if (userDetails.email !== "") {
+                      return true;
+                  } 
+                  else {
+                      return "Email is Required";
+                  }
+              }
+          })}
+          error={Boolean(errors.email)}
+                        helperText={errors.email?.message}
           />
           <TextField
             margin="normal"
@@ -242,18 +259,6 @@ function Register() {
             type="password"
             id="password"
             value={userDetails.password}
-            onChange={handleInput}
-            autoComplete="current-password"
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="confirm_password"
-            label="Confirm Password"
-            type="password"
-            id="confirm_password"
-            value={userDetails.confirm_password}
             onChange={handleInput}
             autoComplete="current-password"
           />
