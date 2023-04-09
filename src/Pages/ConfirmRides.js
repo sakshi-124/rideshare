@@ -1,8 +1,6 @@
 import React from 'react'
 import RidesCard from '../Components/RidesCard'
 import { useEffect, useState } from 'react'
-import ApiContext from '../Common/ApiContext';
-import { useContext } from 'react';
 import axiosApi from '../Common/AxiosApi';
 
 function ConfirmRides() {

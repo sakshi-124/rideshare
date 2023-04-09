@@ -7,7 +7,6 @@ import axiosApi from '../Common/AxiosApi';
 import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
-import ApiContext from '../Common/ApiContext';
 import Swal from 'sweetalert2';
 
 function SignIn() {
@@ -19,7 +18,6 @@ function SignIn() {
     "user": loginDetails
   }
 
-  const { setUserData } = useContext(ApiContext);
 
   let navigate = useNavigate()
 
@@ -40,7 +38,6 @@ function SignIn() {
       .then(res => {
         if (res.data['statusCode'] === 200) {
           console.log(res.data.userDetails)
-          setUserData(res.data.userDetails);
           localStorage.setItem("LoggedInUserDet" , JSON.stringify(res.data.userDetails))
           console.log(JSON.parse(localStorage.getItem("LoggedInUserDet")));
           navigate(path)
