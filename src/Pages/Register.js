@@ -9,6 +9,8 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { useForm } from 'react-hook-form';
 import Swal from 'sweetalert2';
+import Grid from '@mui/material/Grid';
+import Link from '@mui/material/Link';
 
 function Register() {
 
@@ -314,6 +316,13 @@ function Register() {
           >
             Sign Up
           </Button>
+          <Grid container>
+            <Grid item>
+              <Link href="/" variant="body2">
+                {"Have an account? SignIn"}
+              </Link>
+            </Grid>
+          </Grid>
         </Box>
       </Box>
       

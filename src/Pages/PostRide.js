@@ -221,6 +221,7 @@ function PostRide() {
             )}
           />
           <TextField
+          type='number'
             margin="normal"
             required
             fullWidth
@@ -229,7 +230,6 @@ function PostRide() {
             name="available_seat"
             value={rideDetail.available_seat}
             onChange={handleInput}
-            autoComplete="last_name"
           />
           <Button
             type="submit"

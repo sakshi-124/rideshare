@@ -13,6 +13,7 @@ import { useState} from 'react';
 import RideShareNav from './Components/Navbar';
 import AvailableRides from './Pages/AvailableRides';
 import ConfirmRides from './Pages/ConfirmRides';
+import Home from './Pages/Home';
 
 function App() {
   const location = useLocation(); // get the current location of the page
@@ -28,6 +29,7 @@ function App() {
           <Route path ='/postRide' element = { <PostRide/>}/>
           <Route path ='/availableRides' element = { <AvailableRides/>}/>
           <Route path ='/rideRequests' element = { <ConfirmRides/>}/>
+          <Route path ='/profile' element = { <Home/>}/>
       </Routes>
     </div>
   );
