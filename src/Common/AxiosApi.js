@@ -7,7 +7,7 @@
 import axios from "axios";
 
 const axiosApi = axios.create({
-  baseURL: "https://7przixh9me.execute-api.us-east-1.amazonaws.com/testRideShare",
+  baseURL: " https://ncoj4ufzqd.execute-api.us-east-1.amazonaws.com/prod",
   //baseURL: "http://localhost:3000/",
 
 });

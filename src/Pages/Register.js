@@ -204,23 +204,23 @@ function Register() {
             value={userDetails.email}
             onChange={handleInput}
             autoComplete="email"
-              {...register("email", {
-              onChange: (e) => { handleInput(e) },
-              pattern: {
-                value: /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/,
-                message: "Not a valid Email"
-              },
-              validate: () => {
-                  if (userDetails.email !== "") {
-                      return true;
-                  } 
-                  else {
-                      return "Email is Required";
-                  }
-              }
-          })}
-          error={Boolean(errors.email)}
-                        helperText={errors.email?.message}
+          //     {...register("email", {
+          //     onChange: (e) => { handleInput(e) },
+          //     pattern: {
+          //       value: /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/,
+          //       message: "Not a valid Email"
+          //     },
+          //     validate: () => {
+          //         if (userDetails.email !== "") {
+          //             return true;
+          //         } 
+          //         else {
+          //             return "Email is Required";
+          //         }
+          //     }
+          // })}
+          // error={Boolean(errors.email)}
+          //               helperText={errors.email?.message}
           />
           <TextField
             margin="normal"

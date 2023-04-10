@@ -8,6 +8,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import axiosApi from '../Common/AxiosApi';
+import Swal from 'sweetalert2';
 
 function Confirm() {
 
@@ -46,7 +47,16 @@ function Confirm() {
               if(res.data['statusCode'] === 200)
               {
                 console.log(res)
+                Swal.fire({
+                  title: "Verified..!!",
+                  icon: 'success',
+                  text: "Redirecting in a second...",
+                  timer: 2000,
+                  showConfirmButton: false
+              }).then(function () {
                 navigate(path)
+              })
+                
               }else
               {
                 console.log(res.data)
