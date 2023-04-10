@@ -31,7 +31,7 @@ function SignIn() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const registerUserUrl = "/register"
-    const path = "/postRide"
+    const path = "/profile"
     console.log(signIn)
 
     axiosApi.post(registerUserUrl, signIn)
