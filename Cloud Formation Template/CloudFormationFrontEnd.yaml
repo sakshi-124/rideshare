@@ -1,0 +1,58 @@
+#Cloud Formation Front End
+
+#Auther:
+#   Sakshi Chaitanya Vaidya
+#   B00917159
+#   sakshi.vaidya@dal.ca
+
+#Reference
+#https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticbeanstalk-configurationtemplate.html
+
+Resources:
+  RideShareApplication:
+    Type: "AWS::ElasticBeanstalk::Application"
+    Properties:
+      ApplicationName: RideShareFrontEnd
+      Description: RideShare
+      
+  ApplicationVersion:
+    Type: "AWS::ElasticBeanstalk::ApplicationVersion"
+    Properties:
+      ApplicationName: !Ref RideShareApplication
+      Description: String
+      SourceBundle:
+        S3Bucket: rideshare-frontend
+        S3Key: rideshare-frontend.zip
+
+  RideShareEnvironment:
+    Type: 'AWS::ElasticBeanstalk::Environment'
+    Properties:
+      EnvironmentName: 'rideshare-frontend-env'
+      ApplicationName: !Ref RideShareApplication
+      SolutionStackName: '64bit Amazon Linux 2 v5.8.0 running Node.js 18'
+      VersionLabel: !Ref ApplicationVersion
+      Tier:
+        Name: WebServer
+        Type: Standard
+        Version: "1.0"
+      OptionSettings:
+        - Namespace: 'aws:autoscaling:launchconfiguration'
+          OptionName: 'InstanceType'
+          Value: 't2.micro'
+        - Namespace: 'aws:autoscaling:launchconfiguration'
+          OptionName: 'IamInstanceProfile'
+          Value: aws-elasticbeanstalk-ec2-role
+        - Namespace: 'aws:elasticbeanstalk:environment'
+          OptionName: 'EnvironmentType'
+          Value: 'LoadBalanced'
+        - Namespace: 'aws:elasticbeanstalk:environment'
+          OptionName: 'LoadBalancerType'
+          Value: 'application'
+      Tags:
+        - Key: 'Name'
+          Value: 'RideShareFrontEnd'
+
+Outputs:
+  PublicAlbDnsName:
+    Description: ElasticBeanstalk APP URL
+    Value: !GetAtt 'RideShareEnvironment.EndpointURL'

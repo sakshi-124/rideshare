@@ -1,0 +1,650 @@
+#Cloud Formation Back End
+
+#Auther:
+#   Sakshi Chaitanya Vaidya
+#   B00917159
+#   sakshi.vaidya@dal.ca
+
+#Deployed Following Service
+#   Cognito UserPool
+#   Cognito UserPoolClient
+#   AWS SNS Topic
+#   AWS SQS Queue
+#   Lambda Functions(3)
+#   AWS permissions to invoke Lambda
+#   AWS Api Gateway
+#   AWS Resources & Methods
+
+#References 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-restapi.html      
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-resource.html    
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpool.html        
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpoolclient.html  
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html       
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html         
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-permission.html 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sns-topic.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sqs-queue.html
+
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Parameters:
+  CognitoName:
+    Type: String
+    Default: RideShareUsers
+  ApplicationBaseName: 
+    Type: String
+    Default: test
+
+Resources:
+
+#Cognito setting
+  RideShareUserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      UserPoolName: !Ref CognitoName
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: false
+          TemporaryPasswordValidityDays: 7
+      Schema:
+        - Name: sub
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: false
+          Required: true
+          StringAttributeConstraints:
+            MinLength: "1"
+            MaxLength: "2048"
+        - Name: given_name
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+        - Name: family_name
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+        - Name: email
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: true
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+        # - Name: email_verified
+        #   AttributeDataType: Boolean
+        #   DeveloperOnlyAttribute: false
+        #   Mutable: true
+        #   Required: false
+        - Name: phone_number
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+        - Name: address
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+        - Name: city
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+        - Name: province
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+        - Name: country
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "0"
+            MaxLength: "2048"
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      SmsVerificationMessage: 'Your verification code is {####}. '
+      EmailVerificationMessage: "Welcome to RideShare,\n\nYour verification code is {####}. "
+      EmailVerificationSubject: Verification Code
+      VerificationMessageTemplate:
+        SmsMessage: 'Your verification code is {####}. '
+        EmailMessage: "Welcome to RideShare,\n\nYour verification code is {####}. "
+        EmailSubject: Verification Code
+        DefaultEmailOption: CONFIRM_WITH_CODE
+      MfaConfiguration: 'OFF'
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      UserPoolTags:
+        Name: !Ref CognitoName
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UsernameConfiguration:
+        CaseSensitive: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+        - Priority: 1
+          Name: verified_email
+
+  UserPoolAppClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: RideShareClient
+      GenerateSecret: false
+      UserPoolId: !Ref RideShareUserPool
+      RefreshTokenValidity: 30
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      ExplicitAuthFlows:
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+      AllowedOAuthFlowsUserPoolClient: false
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+
+#SNS
+  MySNSTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: "RideShareSNS"
+      TopicName : "RideShareSNS"
+
+#SQS
+  MyQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName: "RideShareRequestQueue"
+      VisibilityTimeout: 60
+      ReceiveMessageWaitTimeSeconds: 1
+
+# #Cloud Search
+#   MyCloudSearchDomain:
+#     Type: AWS::CloudSearch::Domain
+#     Properties:
+#       DomainName: RideSharePlaceSearch
+#       ElasticsearchClusterConfig:
+#         InstanceType: search.m4.large
+#         InstanceCount: 2
+#       AccessPolicies:
+#         Version: '2012-10-17'
+#         Statement:
+#         - Effect: Allow
+#           Principal:
+#             AWS: '*'
+#           Action: 'cloudsearch:*'
+#           Resource: '*'
+#       SearchInstanceType: 'search.m4.large'
+#       SearchPartitionCount: 2
+#       SearchReplicationCount: 2
+#       DataSources:
+#         - DataSourceName: my-s3-datasource
+#           Type: S3
+#           S3BucketName: rideshare-places
+#           Documents:
+#             - DataFileName: document.csv
+#               DocumentIdFieldName: id
+#               ContentType: application/csv
+#               Fields:
+#                 - FieldName: city
+#                   FieldType: text
+#                   DefaultValue: ""
+#                 - FieldName: f__province
+#                   FieldType: text
+#                   DefaultValue: ""
+#       DocumentEndpointOptions:
+#         IndexName: my-cloudsearch-index
+#         RoleArn: arn:aws:iam::854952954971:role/LabRole
+
+#Lambda Function
+  CognitoUserManagement:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: 'cognito-auth'
+      CodeUri: s3://rideshare-lambda/cognito-auth.py.zip
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: >-
+        arn:aws:iam::854952954971:role/LabRole
+      Environment:
+        Variables:
+          COGNITO_CLIENT_ID: !Ref UserPoolAppClient #'jicg7rc6e33n4i49dd0ldhu9r'
+          COGNITO_USER_POOL_ID: !Ref RideShareUserPool #'us-east-1_C3P4kY7MN'
+          SNS_TOPIC_ARN: !Ref MySNSTopic
+          #'arn:aws:sns:us-east-1:854952954971:RideShareManagementTopic'
+  
+  GetPlaces:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: 'search-places'
+      CodeUri: s3://rideshare-lambda/search-place.py.zip
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: >-
+        arn:aws:iam::854952954971:role/LabRole
+      Environment:
+        Variables:
+          CLOUD_SEARCH_DOMAIN: 'rideshare-places'
+          CLOUD_SEARCH_ENDPOINT_URL: 'https://search-rideshare-places-kfu7ecsqnlxz3jfjc27glrxgvy.us-east-1.cloudsearch.amazonaws.com'
+  
+  RideManagement:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: 'ride-management'
+      CodeUri: s3://rideshare-lambda/ride-management.py.zip
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: >-
+        arn:aws:iam::854952954971:role/LabRole
+      Environment:
+        Variables:
+          COGNITO_USER_POOL: !Ref RideShareUserPool #'us-east-1_C3P4kY7MN'
+          QUEUE_NAME: 'RideShareRequestQueue'
+          RIDE_CONFIRMATION_TABLE: 'Ride_Confirmation'
+          RIDE_REQUEST_TABLE: 'RideRequests'
+          RIDE_TABLE: 'Rides'
+          SNS_TOPIC_ARN: !Ref MySNSTopic
+          #'arn:aws:sns:us-east-1:854952954971:RideShareManagementTopic'
+
+#RideShare ApiGateway
+  RideShareApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RideShareApi
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Description: RideShare Api
+      FailOnWarnings: true
+  
+  LambdaPermissionCognito:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - CognitoUserManagement
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Join':
+          - ''
+          - - 'arn:aws:execute-api:'
+            - Ref: 'AWS::Region'
+            - ':'
+            - Ref: 'AWS::AccountId'
+            - ':'
+            - Ref: RideShareApi
+            - /*
+  
+  LambdaPermissionPlaces:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - GetPlaces
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Join':
+          - ''
+          - - 'arn:aws:execute-api:'
+            - Ref: 'AWS::Region'
+            - ':'
+            - Ref: 'AWS::AccountId'
+            - ':'
+            - Ref: RideShareApi
+            - /*
+  
+  LambdaPermissionRideManagement:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - RideManagement
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Join':
+          - ''
+          - - 'arn:aws:execute-api:'
+            - Ref: 'AWS::Region'
+            - ':'
+            - Ref: 'AWS::AccountId'
+            - ':'
+            - Ref: RideShareApi
+            - /*
+
+  RideShareApiStage:
+    Type: 'AWS::ApiGateway::Stage'
+    DependsOn:
+      - ApiDeployment
+    Properties:
+      DeploymentId:
+        Ref: ApiDeployment
+      RestApiId:
+        Ref: RideShareApi
+      StageName: prod
+  
+  ApiDeployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    DependsOn:
+      - RideShareRegisterOption
+      - RideShareRegisterPost
+      - RideShareGetPlacesOption
+      - RideShareGetPlacesPost
+      - RideShareRideManagementOption
+      - RideShareRideManagementPost
+
+
+    Properties:
+      RestApiId:
+        Ref: RideShareApi
+
+  RideShareRegisterResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RideShareApi
+      ParentId:
+        'Fn::GetAtt':
+          - RideShareApi
+          - RootResourceId 
+      PathPart: register
+
+  RideShareGetPlacesResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RideShareApi
+      ParentId:
+        'Fn::GetAtt':
+          - RideShareApi
+          - RootResourceId 
+      PathPart: getplaces
+
+  RideShareRideManagementResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RideShareApi
+      ParentId:
+        'Fn::GetAtt':
+          - RideShareApi
+          - RootResourceId 
+      PathPart: ridemanagement
+
+  RideShareRegisterOption:
+    DependsOn: LambdaPermissionCognito
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId:
+        Ref: RideShareApi
+      ResourceId:
+        Ref: RideShareRegisterResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            "method.response.header.Access-Control-Allow-Methods": "'OPTIONS'"
+            "method.response.header.Access-Control-Allow-Origin": "'*'"
+          ResponseTemplates:
+            application/json: ''
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": false
+            "method.response.header.Access-Control-Allow-Methods": false
+            "method.response.header.Access-Control-Allow-Origin": false
+
+  RideShareRegisterPost:
+    DependsOn: LambdaPermissionCognito
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId:
+        Ref: RideShareRegisterResource
+      RestApiId:
+        Ref: RideShareApi
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Uri:
+          'Fn::Join':
+            - ''
+            - - 'arn:aws:apigateway:'
+              - Ref: 'AWS::Region'
+              - ':lambda:path/2015-03-31/functions/'
+              - 'Fn::GetAtt':
+                  - CognitoUserManagement
+                  - Arn
+              - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers" : "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            "method.response.header.Access-Control-Allow-Methods": "'POST'"
+            "method.response.header.Access-Control-Allow-Origin" : "'*'"
+          ResponseTemplates:
+            application/json: ''
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": false
+            "method.response.header.Access-Control-Allow-Methods": false
+            "method.response.header.Access-Control-Allow-Origin": false
+            
+  RideShareGetPlacesOption:
+    DependsOn: LambdaPermissionPlaces
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId:
+        Ref: RideShareApi
+      ResourceId:
+        Ref: RideShareGetPlacesResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            "method.response.header.Access-Control-Allow-Methods": "'OPTIONS'"
+            "method.response.header.Access-Control-Allow-Origin": "'*'"
+          ResponseTemplates:
+            application/json: ''
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": false
+            "method.response.header.Access-Control-Allow-Methods": false
+            "method.response.header.Access-Control-Allow-Origin": false
+
+  RideShareGetPlacesPost:
+    DependsOn: LambdaPermissionPlaces
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId:
+        Ref: RideShareGetPlacesResource
+      RestApiId:
+        Ref: RideShareApi
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Uri:
+          'Fn::Join':
+            - ''
+            - - 'arn:aws:apigateway:'
+              - Ref: 'AWS::Region'
+              - ':lambda:path/2015-03-31/functions/'
+              - 'Fn::GetAtt':
+                  - GetPlaces
+                  - Arn
+              - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers" : "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            "method.response.header.Access-Control-Allow-Methods": "'POST'"
+            "method.response.header.Access-Control-Allow-Origin" : "'*'"
+          ResponseTemplates:
+            application/json: ''
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": false
+            "method.response.header.Access-Control-Allow-Methods": false
+            "method.response.header.Access-Control-Allow-Origin": false
+
+  RideShareRideManagementOption:
+    DependsOn: LambdaPermissionRideManagement
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId:
+        Ref: RideShareApi
+      ResourceId:
+        Ref: RideShareRideManagementResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            "method.response.header.Access-Control-Allow-Methods": "'OPTIONS'"
+            "method.response.header.Access-Control-Allow-Origin": "'*'"
+          ResponseTemplates:
+            application/json: ''
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": false
+            "method.response.header.Access-Control-Allow-Methods": false
+            "method.response.header.Access-Control-Allow-Origin": false
+
+  RideShareRideManagementPost:
+    DependsOn: LambdaPermissionRideManagement
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId:
+        Ref: RideShareRideManagementResource
+      RestApiId:
+        Ref: RideShareApi
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Uri:
+          'Fn::Join':
+            - ''
+            - - 'arn:aws:apigateway:'
+              - Ref: 'AWS::Region'
+              - ':lambda:path/2015-03-31/functions/'
+              - 'Fn::GetAtt':
+                  - RideManagement
+                  - Arn
+              - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers" : "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            "method.response.header.Access-Control-Allow-Methods": "'POST'"
+            "method.response.header.Access-Control-Allow-Origin" : "'*'"
+          ResponseTemplates:
+            application/json: ''
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            "method.response.header.Access-Control-Allow-Headers": false
+            "method.response.header.Access-Control-Allow-Methods": false
+            "method.response.header.Access-Control-Allow-Origin": false      
+
+Outputs:
+  CognitoUserPool:
+    Description: User Pool
+    Value: !Ref RideShareUserPool
+  CognitoUserPoolAppClient:
+    Description: User App Client
+    Value: !Ref UserPoolAppClient
+  # CloudSearchEndpoint:
+  #   Value: !Join ["://", ["http", !GetAtt MyCloudSearchDomain.DomainEndpoint]]
+  #   Description: "Endpoint URL for the Amazon CloudSearch domain."
+  ProdDataEndpoint:
+    Description: "prod endpoint"
+    Value: !Sub "https://${RideShareApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  
